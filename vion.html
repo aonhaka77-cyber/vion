@@ -921,7 +921,7 @@
                         finger: String(item.finger ?? item.fingering ?? inferFinger(index, level, stringName)),
                         string: stringName,
                         x: center.x,
-                        y: Math.max(12, center.y - Math.max(22, canvas.height * 0.016))
+                        y: Math.max(10, center.y - Math.max(14, canvas.height * 0.01))
                     };
                 });
         }
@@ -1022,7 +1022,7 @@
                     finger: inferFinger(index, level, stringName),
                     string: stringName,
                     x: note.cx,
-                    y: Math.max(12, note.minY - Math.max(20, height * 0.014))
+                    y: Math.max(10, note.minY - Math.max(13, height * 0.009))
                 };
             });
 
@@ -1315,13 +1315,13 @@
         }
 
         function drawMark(mark) {
-            const size = Math.max(31, Math.min(canvas.width, canvas.height) * 0.045);
+            const size = Math.max(18, Math.min(30, Math.min(canvas.width, canvas.height) * 0.026));
             const color = stringColors[mark.string] || "#111827";
             const tilt = ((mark.id.charCodeAt(0) % 7) - 3) * 0.025;
             ctx.save();
             ctx.translate(mark.x, mark.y);
             ctx.rotate(tilt);
-            ctx.lineWidth = Math.max(2, size * 0.075);
+            ctx.lineWidth = Math.max(1.2, size * 0.055);
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
             ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
@@ -1332,8 +1332,8 @@
             ctx.strokeText(mark.finger, 0, 0);
             ctx.fillText(mark.finger, 0, 0);
 
-            ctx.font = `700 ${Math.round(size * 0.42)}px Caveat, Noto Sans KR, cursive`;
-            ctx.fillText(mark.string || "", size * 0.42, size * 0.32);
+            ctx.font = `700 ${Math.round(size * 0.34)}px Caveat, Noto Sans KR, cursive`;
+            ctx.fillText(mark.string || "", size * 0.38, size * 0.28);
             ctx.restore();
         }
 
@@ -1356,7 +1356,7 @@
         }
 
         function findMark(point) {
-            const radius = Math.max(28, Math.min(canvas.width, canvas.height) * 0.035);
+            const radius = Math.max(20, Math.min(canvas.width, canvas.height) * 0.026);
             return [...state.marks].reverse().find((mark) => {
                 const dx = mark.x - point.x;
                 const dy = mark.y - point.y;
