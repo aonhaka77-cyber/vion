@@ -10,6 +10,33 @@ String colors:
 
 The frontend is static HTML and can be hosted on GitHub Pages. YOLO + Music Symbol Recognition requires a separate Python API server.
 
+## Easiest Local Start On Windows
+
+Double-click:
+
+```text
+START_VION_LOCAL.bat
+```
+
+It will:
+
+1. Check Python.
+2. Offer to install Python with winget if possible.
+3. Create `.venv`.
+4. Install dependencies.
+5. Start the YOLO/MSR API server.
+6. Open `vion.html`.
+
+Keep the API server window open while using YOLO/MSR mode.
+
+If Python must be installed manually, install Python 3.11 or newer from:
+
+```text
+https://www.python.org/downloads/
+```
+
+During installation, check `Add python.exe to PATH`.
+
 ## Files
 
 ```text
@@ -18,6 +45,7 @@ vion.html               Main web app
 yolo_msr_server.py      YOLO/MSR analysis API
 requirements.txt        Python server dependencies
 run_yolo_server.bat     Local Windows server runner
+START_VION_LOCAL.bat    One-click local setup and launcher
 render.yaml             Render deploy config
 Procfile                Python web process command
 runtime.txt             Python runtime hint
