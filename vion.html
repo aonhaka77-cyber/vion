@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Vion - 악보 사진 운지 편집</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --ink: #171f1c;
+            --muted: #68736f;
+            --line: #dfe7e2;
+            --paper: #ffffff;
+            --soft: #f4f7f5;
+            --brand: #1f6b5a;
+            --brand-dark: #13483f;
+            --accent: #c95f35;
+            --gold: #d6a83d;
+            --shadow: 0 18px 44px rgba(21, 38, 32, 0.13);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #fbfcfa;
+            color: var(--ink);
+            font-family: "Noto Sans KR", system-ui, sans-serif;
+            letter-spacing: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button, input, select { font: inherit; }
+        button { border: 0; cursor: pointer; color: inherit; }
+
+        .app {
+            min-height: 100vh;
+            padding-bottom: calc(104px + env(safe-area-inset-bottom));
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(251, 252, 250, 0.92);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(223, 231, 226, 0.9);
+        }
+
+        .topbar-inner {
+            width: min(1080px, 100%);
+            min-height: 64px;
+            margin: 0 auto;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            background: var(--brand);
+            color: #fff;
+            box-shadow: 0 10px 22px rgba(31, 107, 90, 0.22);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 20px;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .brand p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .icon-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        main {
+            width: min(1080px, 100%);
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            gap: 14px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .intro {
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+
+        .intro h2 {
+            margin: 0;
+            max-width: 720px;
+            font-size: clamp(28px, 7vw, 48px);
+            line-height: 1.05;
+            font-weight: 900;
+        }
+
+        .intro p {
+            margin: 12px 0 0;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.58;
+            font-weight: 650;
+        }
+
+        .upload-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .upload-label {
+            position: relative;
+            min-height: 54px;
+            padding: 0 16px;
+            border-radius: 8px;
+            background: var(--soft);
+            border: 1px dashed #9eaea6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 900;
+            overflow: hidden;
+        }
+
+        .upload-label input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .button {
+            min-height: 54px;
+            border-radius: 8px;
+            padding: 0 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .button.primary { background: var(--brand); color: #fff; }
+        .button.dark { background: #17201c; color: #fff; }
+        .button.soft { background: var(--soft); border: 1px solid var(--line); }
+        .button.warn { background: #fff2ea; color: #9b3f19; border: 1px solid #f4c9b7; }
+
+        .editor {
+            overflow: hidden;
+        }
+
+        .editor-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 12px 0;
+        }
+
+        .editor-head h2,
+        .side-title h2 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .status {
+            min-height: 30px;
+            padding: 0 10px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #eef5f2;
+            color: var(--brand-dark);
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .canvas-wrap {
+            position: relative;
+            margin: 12px;
+            min-height: 520px;
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.74), rgba(244,247,245,0.9)),
+                repeating-linear-gradient(0deg, transparent 0 22px, rgba(23,31,28,0.08) 23px 24px);
+            border: 1px solid #e5ece8;
+            overflow: auto;
+            display: grid;
+            place-items: center;
+            touch-action: none;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            background: #fff;
+        }
+
+        .empty-state {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .empty-state.hidden { display: none; }
+
+        .empty-state strong {
+            display: block;
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 6px;
+        }
+
+        .empty-state span {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 750;
+        }
+
+        .side {
+            display: grid;
+            gap: 12px;
+        }
+
+        .side-card {
+            padding: 14px;
+        }
+
+        .side-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .tools {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .string-tools {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .finger-tool {
+            min-height: 48px;
+            border-radius: 8px;
+            background: var(--soft);
+            border: 1px solid transparent;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .finger-tool.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .string-tool {
+            min-height: 46px;
+            border-radius: 8px;
+            background: var(--soft);
+            border: 1px solid transparent;
+            display: grid;
+            place-items: center;
+            gap: 2px;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .string-tool strong {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .string-tool.active {
+            border-color: currentColor;
+            background: #fff;
+        }
+
+        .settings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+        }
+
+        .settings.wide {
+            grid-template-columns: 1fr;
+            margin-top: 9px;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 7px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .field select,
+        .field input {
+            width: 100%;
+            min-height: 46px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: #fff;
+            padding: 0 12px;
+            outline: 0;
+            font-weight: 850;
+        }
+
+        .field input::placeholder {
+            color: #9aa6a0;
+        }
+
+        .actions {
+            display: grid;
+            gap: 9px;
+        }
+
+        .actions.two {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .mark-list {
+            display: grid;
+            gap: 8px;
+            max-height: 260px;
+            overflow: auto;
+        }
+
+        .mark-item {
+            min-height: 46px;
+            border-radius: 8px;
+            padding: 8px 10px;
+            background: var(--soft);
+            display: grid;
+            grid-template-columns: 34px 1fr auto;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .mark-badge {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            background: #fff;
+            border: 1px solid currentColor;
+            font-weight: 900;
+            font-family: "Caveat", cursive;
+            font-size: 21px;
+        }
+
+        .mark-item strong {
+            display: block;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .mark-item span {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 750;
+        }
+
+        .delete-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            background: #fff;
+            color: #a44522;
+            border: 1px solid #f2cabb;
+        }
+
+        .hint-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+
+        .hint-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            color: #3c4742;
+            font-size: 13px;
+            line-height: 1.5;
+            font-weight: 720;
+        }
+
+        .hint-list i {
+            color: var(--brand);
+            flex: 0 0 auto;
+            margin-top: 2px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            left: 50%;
+            bottom: max(14px, env(safe-area-inset-bottom));
+            z-index: 40;
+            width: min(520px, calc(100vw - 28px));
+            min-height: 66px;
+            padding: 8px;
+            border: 1px solid rgba(223, 231, 226, 0.9);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 18px 50px rgba(21, 38, 32, 0.16);
+            backdrop-filter: blur(18px);
+            transform: translateX(-50%);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .bottom-nav button {
+            border-radius: 8px;
+            background: transparent;
+            color: var(--muted);
+            display: grid;
+            place-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .bottom-nav button.active {
+            background: var(--brand);
+            color: #fff;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: calc(94px + env(safe-area-inset-bottom));
+            z-index: 60;
+            width: min(420px, calc(100vw - 36px));
+            padding: 13px 16px;
+            border-radius: 8px;
+            background: #17201c;
+            color: #fff;
+            text-align: center;
+            font-weight: 850;
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, 10px);
+            transition: opacity 0.22s ease, transform 0.22s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        @media (max-width: 860px) {
+            main { padding: 14px; }
+            .layout { grid-template-columns: 1fr; }
+            .canvas-wrap { min-height: min(70vh, 560px); }
+        }
+
+        @media (max-width: 520px) {
+            .brand p { display: none; }
+            .intro { padding: 16px; }
+            .upload-row { grid-template-columns: 1fr; }
+            .settings { grid-template-columns: 1fr; }
+            .settings.wide { grid-template-columns: 1fr; }
+            .actions.two { grid-template-columns: 1fr; }
+            .tools { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            .string-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="topbar">
+            <div class="topbar-inner">
+                <div class="brand">
+                    <div class="brand-mark"><i data-lucide="music-2" aria-hidden="true"></i></div>
+                    <div>
+                        <h1>Vion</h1>
+                        <p>악보 사진에 운지 번호를 직접 합성</p>
+                    </div>
+                </div>
+                <button class="icon-button" id="resetButton" type="button" aria-label="초기화">
+                    <i data-lucide="rotate-ccw"></i>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <section class="layout">
+                <div>
+                    <section class="intro panel" id="upload">
+                        <h2>악보 사진을 분석해서 사진 위에 손가락 번호를 입혀요</h2>
+                        <p>사진을 올리고 분석을 누르면 예시 악보처럼 이미지 위에 손글씨 느낌의 운지 번호가 올라갑니다. A현은 빨강, D현은 파랑, E현은 검정으로 표시됩니다.</p>
+                        <div class="upload-row">
+                            <label class="upload-label" id="dropZone">
+                                <input id="photoInput" type="file" accept="image/*">
+                                <i data-lucide="image-up"></i>
+                                <span id="fileLabel">악보 사진 선택 또는 드롭</span>
+                            </label>
+                            <button class="button soft" id="sampleButton" type="button">
+                                <i data-lucide="sparkles"></i>
+                                샘플 사진
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="editor panel" id="editor">
+                        <div class="editor-head">
+                            <h2>편집된 악보 사진</h2>
+                            <span class="status" id="status"><i data-lucide="clock-3"></i> 대기</span>
+                        </div>
+                        <div class="canvas-wrap" id="canvasWrap">
+                            <canvas id="scoreCanvas"></canvas>
+                            <div class="empty-state" id="emptyState">
+                                <div>
+                                    <strong>사진을 올리면 여기에 표시됩니다</strong>
+                                    <span>분석 후 번호가 이미지 위에 바로 합성돼요</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <aside class="side" id="tools">
+                    <section class="side-card panel">
+                        <div class="side-title">
+                            <h2>사진 분석</h2>
+                            <span class="status" id="markCount">0개</span>
+                        </div>
+                        <div class="settings">
+                            <div class="field">
+                                <label for="levelSelect">연주자 수준</label>
+                                <select id="levelSelect">
+                                    <option value="beginner">초급</option>
+                                    <option value="middle" selected>중급</option>
+                                    <option value="advanced">고급</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>현 색상 규칙</label>
+                                <input value="A 빨강 / D 파랑 / E 검정" readonly>
+                            </div>
+                        </div>
+                        <div class="settings wide">
+                            <div class="field">
+                                <label for="engineSelect">분석 엔진</label>
+                                <select id="engineSelect">
+                                    <option value="yolo" selected>YOLO + Music Symbol Recognition</option>
+                                    <option value="local">브라우저 간이 분석</option>
+                                </select>
+                            </div>
+                            <div class="field" id="apiField">
+                                <label for="apiEndpoint">YOLO/MSR API 주소</label>
+                                <input id="apiEndpoint" value="http://localhost:8000/analyze-score" placeholder="http://localhost:8000/analyze-score">
+                            </div>
+                        </div>
+                        <div class="actions" style="margin-top: 10px;">
+                            <button class="button primary" id="analyzeButton" type="button">
+                                <i data-lucide="scan-search"></i>
+                                YOLO/MSR로 번호 입히기
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="side-card panel">
+                        <div class="side-title">
+                            <h2>직접 편집</h2>
+                        </div>
+                        <div class="tools" id="fingerTools">
+                            <button class="finger-tool" type="button" data-finger="0">0</button>
+                            <button class="finger-tool active" type="button" data-finger="1">1</button>
+                            <button class="finger-tool" type="button" data-finger="2">2</button>
+                            <button class="finger-tool" type="button" data-finger="3">3</button>
+                            <button class="finger-tool" type="button" data-finger="4">4</button>
+                        </div>
+                        <div class="string-tools" id="stringTools">
+                            <button class="string-tool active" type="button" data-string="A" style="color:#c01832"><strong>A</strong><span>빨강</span></button>
+                            <button class="string-tool" type="button" data-string="D" style="color:#1d4ed8"><strong>D</strong><span>파랑</span></button>
+                            <button class="string-tool" type="button" data-string="E" style="color:#111827"><strong>E</strong><span>검정</span></button>
+                        </div>
+                        <div class="actions two" style="margin-top: 10px;">
+                            <button class="button soft" id="undoButton" type="button">
+                                <i data-lucide="undo-2"></i>
+                                하나 삭제
+                            </button>
+                            <button class="button warn" id="clearButton" type="button">
+                                <i data-lucide="eraser"></i>
+                                번호 지우기
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="side-card panel">
+                        <div class="side-title">
+                            <h2>저장</h2>
+                        </div>
+                        <div class="actions">
+                            <button class="button dark" id="downloadButton" type="button">
+                                <i data-lucide="download"></i>
+                                편집된 사진 저장
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="side-card panel">
+                        <div class="side-title">
+                            <h2>표시된 번호</h2>
+                        </div>
+                        <div class="mark-list" id="markList"></div>
+                    </section>
+
+                    <section class="side-card panel">
+                        <ul class="hint-list">
+                            <li><i data-lucide="check-circle-2"></i><span>번호를 잡고 끌면 위치를 옮길 수 있습니다.</span></li>
+                            <li><i data-lucide="check-circle-2"></i><span>빈 곳을 누르면 선택한 손가락 번호와 현 색상으로 추가됩니다.</span></li>
+                            <li><i data-lucide="check-circle-2"></i><span>YOLO/MSR 서버가 켜져 있으면 실제 모델 결과를 쓰고, 실패하면 브라우저 분석으로 대체합니다.</span></li>
+                        </ul>
+                    </section>
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <nav class="bottom-nav" aria-label="주요 이동">
+        <button class="active" type="button" data-target="upload"><i data-lucide="image-up"></i><span>업로드</span></button>
+        <button type="button" data-target="editor"><i data-lucide="pen-line"></i><span>편집</span></button>
+        <button type="button" data-target="tools"><i data-lucide="sliders-horizontal"></i><span>도구</span></button>
+    </nav>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => document.querySelectorAll(selector);
+
+        const canvas = $("#scoreCanvas");
+        const ctx = canvas.getContext("2d");
+        const state = {
+            image: null,
+            fileName: "",
+            marks: [],
+            selectedFinger: "1",
+            selectedString: "A",
+            draggingId: null,
+            dragOffset: { x: 0, y: 0 },
+        };
+
+        const stringColors = {
+            A: "#c01832",
+            D: "#1d4ed8",
+            E: "#111827",
+            G: "#1f6b5a"
+        };
+
+        function makeId() {
+            if (crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+            return `mark-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        }
+
+        function showToast(message) {
+            const toast = $("#toast");
+            toast.textContent = message;
+            toast.classList.add("show");
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.remove("show"), 2300);
+        }
+
+        function setStatus(message, icon = "clock-3") {
+            $("#status").innerHTML = `<i data-lucide="${icon}"></i> ${message}`;
+            lucide.createIcons();
+        }
+
+        function fitImageSize(image) {
+            const maxSide = 1600;
+            const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+            canvas.width = Math.round(image.naturalWidth * scale);
+            canvas.height = Math.round(image.naturalHeight * scale);
+        }
+
+        function loadImage(src, name = "score-photo.png") {
+            const image = new Image();
+            image.onload = () => {
+                state.image = image;
+                state.fileName = name;
+                state.marks = [];
+                fitImageSize(image);
+                $("#emptyState").classList.add("hidden");
+                $("#fileLabel").textContent = name;
+                setStatus("사진 로드됨", "image-check");
+                draw();
+                updateMarkList();
+                showToast("악보 사진을 불러왔습니다");
+            };
+            image.src = src;
+        }
+
+        function handleFile(file) {
+            if (!file) return;
+            if (!file.type.startsWith("image/")) {
+                showToast("사진 파일만 올릴 수 있습니다");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (event) => loadImage(event.target.result, file.name);
+            reader.readAsDataURL(file);
+        }
+
+        function drawSampleScore() {
+            canvas.width = 1200;
+            canvas.height = 820;
+            const offscreen = document.createElement("canvas");
+            offscreen.width = canvas.width;
+            offscreen.height = canvas.height;
+            const sample = offscreen.getContext("2d");
+
+            sample.fillStyle = "#fffdf8";
+            sample.fillRect(0, 0, offscreen.width, offscreen.height);
+            sample.fillStyle = "#171f1c";
+            sample.font = "900 44px Noto Sans KR, sans-serif";
+            sample.fillText("Violin Study", 72, 96);
+            sample.font = "700 24px Noto Sans KR, sans-serif";
+            sample.fillText("Allegretto", 74, 136);
+
+            for (let staff = 0; staff < 4; staff += 1) {
+                const top = 210 + staff * 145;
+                sample.strokeStyle = "#171f1c";
+                sample.lineWidth = 3;
+                for (let line = 0; line < 5; line += 1) {
+                    sample.beginPath();
+                    sample.moveTo(72, top + line * 18);
+                    sample.lineTo(1128, top + line * 18);
+                    sample.stroke();
+                }
+                for (let bar = 0; bar < 5; bar += 1) {
+                    const x = 72 + bar * 264;
+                    sample.beginPath();
+                    sample.moveTo(x, top);
+                    sample.lineTo(x, top + 72);
+                    sample.stroke();
+                }
+                for (let n = 0; n < 10; n += 1) {
+                    const x = 128 + n * 95 + (staff % 2) * 18;
+                    const y = top + [45, 28, 55, 20, 38, 62, 30, 48, 22, 58][n];
+                    sample.save();
+                    sample.translate(x, y);
+                    sample.rotate(-0.22);
+                    sample.fillStyle = "#171f1c";
+                    sample.beginPath();
+                    sample.ellipse(0, 0, 17, 12, 0, 0, Math.PI * 2);
+                    sample.fill();
+                    sample.restore();
+                    sample.fillRect(x + 13, y - 58, 3, 58);
+                }
+            }
+
+            const image = new Image();
+            image.onload = () => {
+                state.image = image;
+                state.fileName = "sample-score.png";
+                state.marks = [];
+                $("#emptyState").classList.add("hidden");
+                $("#fileLabel").textContent = "샘플 악보 사진";
+                setStatus("샘플 준비됨", "sparkles");
+                draw();
+                updateMarkList();
+            };
+            image.src = offscreen.toDataURL("image/png");
+        }
+
+        async function detectMarks() {
+            if (!state.image) {
+                showToast("먼저 악보 사진을 올려주세요");
+                return;
+            }
+
+            setStatus("AI 분석 중", "loader-circle");
+            const level = $("#levelSelect").value;
+            const engine = $("#engineSelect").value;
+
+            if (engine === "yolo") {
+                try {
+                    const result = await analyzeWithYoloMsr(level);
+                    state.marks = result.marks;
+                    draw();
+                    updateMarkList();
+                    setStatus(`YOLO/MSR ${result.marks.length}개`, "check");
+                    showToast("YOLO/MSR 모델 결과로 번호를 입혔습니다");
+                    return;
+                } catch (error) {
+                    console.warn(error);
+                    setStatus("서버 실행 필요", "wifi-off");
+                    showToast("run_yolo_server.bat 실행 후 다시 눌러주세요. 지금은 브라우저 분석으로 대체합니다");
+                }
+            }
+
+            window.setTimeout(() => {
+                const result = analyzeScoreImage(level);
+                state.marks = result.marks;
+
+                draw();
+                updateMarkList();
+                setStatus(`AI 분석 ${result.marks.length}개`, "check");
+                showToast(result.usedFallback ? "음표가 적게 잡혀 예비 위치를 함께 사용했습니다" : "악보 사진에서 음표를 찾아 번호를 입혔습니다");
+            }, 650);
+        }
+
+        async function analyzeWithYoloMsr(level) {
+            const endpoint = $("#apiEndpoint").value.trim();
+            if (!endpoint) throw new Error("YOLO/MSR API 주소가 없습니다");
+
+            const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png", 0.95));
+            if (!blob) throw new Error("이미지 변환 실패");
+
+            const form = new FormData();
+            form.append("image", blob, state.fileName || "score.png");
+            form.append("level", level);
+            form.append("strings", JSON.stringify({ A: "red", D: "blue", E: "black" }));
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                body: form
+            });
+            if (!response.ok) throw new Error(`YOLO/MSR API 오류: ${response.status}`);
+
+            const payload = await response.json();
+            const marks = normalizeYoloMsrResult(payload, level);
+            if (!marks.length) throw new Error("YOLO/MSR 결과에 음표가 없습니다");
+            return { marks };
+        }
+
+        function normalizeYoloMsrResult(payload, level) {
+            const items = Array.isArray(payload.notes)
+                ? payload.notes
+                : Array.isArray(payload.detections)
+                    ? payload.detections
+                    : Array.isArray(payload.symbols)
+                        ? payload.symbols
+                        : [];
+
+            return items
+                .filter((item) => isNoteDetection(item))
+                .sort((a, b) => {
+                    const ay = getDetectionCenter(a).y;
+                    const by = getDetectionCenter(b).y;
+                    if (Math.abs(ay - by) > canvas.height * 0.045) return ay - by;
+                    return getDetectionCenter(a).x - getDetectionCenter(b).x;
+                })
+                .slice(0, 120)
+                .map((item, index) => {
+                    const center = getDetectionCenter(item);
+                    const stringName = normalizeString(item.string || item.violin_string || item.predicted_string) || inferStringFromY(center.y);
+                    return {
+                        id: makeId(),
+                        finger: String(item.finger ?? item.fingering ?? inferFinger(index, level, stringName)),
+                        string: stringName,
+                        x: center.x,
+                        y: Math.max(12, center.y - Math.max(22, canvas.height * 0.016))
+                    };
+                });
+        }
+
+        function isNoteDetection(item) {
+            const label = String(item.label || item.class || item.name || item.symbol || "note").toLowerCase();
+            const score = Number(item.confidence ?? item.score ?? item.prob ?? 1);
+            return score >= 0.2 && /note|head|quarter|eighth|half|whole|음표/.test(label);
+        }
+
+        function getDetectionCenter(item) {
+            if (Array.isArray(item.bbox)) {
+                const [x1, y1, a, b] = item.bbox.map(Number);
+                const isXYWH = item.bbox_format === "xywh" || item.format === "xywh" || a < x1 || b < y1;
+                const cx = isXYWH ? x1 + a / 2 : (x1 + a) / 2;
+                const cy = isXYWH ? y1 + b / 2 : (y1 + b) / 2;
+                return scaleDetectionPoint(cx, cy, item);
+            }
+            if (item.x != null && item.y != null) {
+                return scaleDetectionPoint(Number(item.x), Number(item.y), item);
+            }
+            if (item.cx != null && item.cy != null) {
+                return scaleDetectionPoint(Number(item.cx), Number(item.cy), item);
+            }
+            return { x: canvas.width / 2, y: canvas.height / 2 };
+        }
+
+        function scaleDetectionPoint(x, y, item) {
+            const normalized = x <= 1 && y <= 1;
+            if (normalized || item.normalized) {
+                return { x: x * canvas.width, y: y * canvas.height };
+            }
+            const sourceWidth = Number(item.image_width || item.source_width || 0);
+            const sourceHeight = Number(item.image_height || item.source_height || 0);
+            if (sourceWidth > 0 && sourceHeight > 0 && (sourceWidth !== canvas.width || sourceHeight !== canvas.height)) {
+                return { x: x * canvas.width / sourceWidth, y: y * canvas.height / sourceHeight };
+            }
+            return { x, y };
+        }
+
+        function normalizeString(value) {
+            const text = String(value || "").toUpperCase();
+            if (text.includes("A")) return "A";
+            if (text.includes("D")) return "D";
+            if (text.includes("E")) return "E";
+            return "";
+        }
+
+        function inferStringFromY(y) {
+            if (y < canvas.height * 0.38) return "E";
+            if (y < canvas.height * 0.68) return "A";
+            return "D";
+        }
+
+        function analyzeScoreImage(level) {
+            draw();
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const { width, height, data } = imageData;
+            const mask = new Uint8Array(width * height);
+            const rowCounts = new Uint32Array(height);
+
+            for (let y = 0; y < height; y += 1) {
+                for (let x = 0; x < width; x += 1) {
+                    const i = (y * width + x) * 4;
+                    const brightness = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                    if (brightness < 118 && y > height * 0.12) {
+                        mask[y * width + x] = 1;
+                        rowCounts[y] += 1;
+                    }
+                }
+            }
+
+            const staffLines = findStaffLines(rowCounts, width, height);
+            const staffGroups = groupStaffLines(staffLines);
+            staffLines.forEach((lineY) => {
+                for (let yy = Math.max(0, lineY - 2); yy <= Math.min(height - 1, lineY + 2); yy += 1) {
+                    for (let x = 0; x < width; x += 1) mask[yy * width + x] = 0;
+                }
+            });
+
+            const densityCandidates = detectNoteHeadsByDensity(mask, width, height, staffGroups);
+            let noteCandidates = densityCandidates;
+            if (noteCandidates.length < 8) {
+                const componentCandidates = findDarkComponents(mask, width, height)
+                    .map((box) => {
+                        const staff = nearestStaff(box.cx, box.cy, staffGroups);
+                        return { ...box, staff, score: box.area };
+                    })
+                    .filter((box) => isLikelyNote(box, staffGroups, width, height));
+                noteCandidates = densityCandidates.concat(componentCandidates);
+            }
+
+            const deduped = dedupeNotes(noteCandidates, width, height);
+            const marks = deduped.slice(0, 80).map((note, index) => {
+                const stringName = inferString(note);
+                return {
+                    id: makeId(),
+                    finger: inferFinger(index, level, stringName),
+                    string: stringName,
+                    x: note.cx,
+                    y: Math.max(12, note.minY - Math.max(20, height * 0.014))
+                };
+            });
+
+            if (marks.length >= 6) {
+                return { marks, usedFallback: false };
+            }
+
+            return {
+                marks: buildFallbackMarks(level, staffGroups),
+                usedFallback: true
+            };
+        }
+
+        function findStaffLines(rowCounts, width, height) {
+            const threshold = width * 0.18;
+            const lines = [];
+            let start = -1;
+            let bestY = 0;
+            let bestCount = 0;
+
+            for (let y = Math.floor(height * 0.12); y < height; y += 1) {
+                if (rowCounts[y] > threshold) {
+                    if (start === -1) {
+                        start = y;
+                        bestY = y;
+                        bestCount = rowCounts[y];
+                    } else if (rowCounts[y] > bestCount) {
+                        bestY = y;
+                        bestCount = rowCounts[y];
+                    }
+                } else if (start !== -1) {
+                    lines.push(bestY);
+                    start = -1;
+                    bestCount = 0;
+                }
+            }
+            if (start !== -1) lines.push(bestY);
+            return lines.filter((line, index) => index === 0 || line - lines[index - 1] > 4);
+        }
+
+        function groupStaffLines(lines) {
+            const groups = [];
+            for (let i = 0; i <= lines.length - 5; i += 1) {
+                const slice = lines.slice(i, i + 5);
+                const gaps = slice.slice(1).map((line, index) => line - slice[index]);
+                const avgGap = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+                const stable = gaps.every((gap) => Math.abs(gap - avgGap) < avgGap * 0.45);
+                if (stable && avgGap > 5 && avgGap < 40) {
+                    groups.push({
+                        lines: slice,
+                        top: slice[0],
+                        bottom: slice[4],
+                        center: (slice[0] + slice[4]) / 2,
+                        gap: avgGap
+                    });
+                    i += 4;
+                }
+            }
+            return groups;
+        }
+
+        function detectNoteHeadsByDensity(mask, width, height, staffGroups) {
+            if (!staffGroups.length) return [];
+            const integral = buildIntegral(mask, width, height);
+            const candidates = [];
+
+            staffGroups.forEach((staff) => {
+                const gap = staff.gap;
+                const winW = Math.max(8, Math.round(gap * 1.35));
+                const winH = Math.max(7, Math.round(gap * 1.05));
+                const stepX = Math.max(4, Math.round(gap * 0.45));
+                const stepY = Math.max(3, Math.round(gap * 0.32));
+                const yMin = Math.max(0, Math.round(staff.top - gap * 3.2));
+                const yMax = Math.min(height - winH - 1, Math.round(staff.bottom + gap * 3.0));
+                const xMin = Math.round(width * 0.08);
+                const xMax = width - winW - Math.round(width * 0.03);
+
+                for (let y = yMin; y <= yMax; y += stepY) {
+                    for (let x = xMin; x <= xMax; x += stepX) {
+                        const ink = rectSum(integral, width, x, y, winW, winH);
+                        const density = ink / (winW * winH);
+                        if (density < 0.18 || density > 0.82) continue;
+
+                        const leftInk = rectSum(integral, width, Math.max(0, x - winW), y, winW, winH);
+                        const rightInk = rectSum(integral, width, Math.min(width - winW, x + winW), y, winW, winH);
+                        const staffDistance = Math.min(...staff.lines.map((line) => Math.abs((y + winH / 2) - line)));
+                        const noteLike = staffDistance < gap * 1.05 || (y + winH / 2 > staff.top - gap && y + winH / 2 < staff.bottom + gap);
+                        const isolatedEnough = ink > Math.max(leftInk, rightInk) * 0.62;
+                        if (!noteLike || !isolatedEnough) continue;
+
+                        candidates.push({
+                            minX: x,
+                            maxX: x + winW,
+                            minY: y,
+                            maxY: y + winH,
+                            width: winW,
+                            height: winH,
+                            area: ink,
+                            cx: x + winW / 2,
+                            cy: y + winH / 2,
+                            staff,
+                            score: density * 1000 + ink
+                        });
+                    }
+                }
+            });
+
+            return nonMaxSuppress(candidates, Math.max(14, Math.min(width, height) * 0.018));
+        }
+
+        function buildIntegral(mask, width, height) {
+            const integral = new Uint32Array((width + 1) * (height + 1));
+            for (let y = 1; y <= height; y += 1) {
+                let rowSum = 0;
+                for (let x = 1; x <= width; x += 1) {
+                    rowSum += mask[(y - 1) * width + (x - 1)];
+                    integral[y * (width + 1) + x] = integral[(y - 1) * (width + 1) + x] + rowSum;
+                }
+            }
+            return integral;
+        }
+
+        function rectSum(integral, width, x, y, w, h) {
+            const stride = width + 1;
+            const x1 = Math.max(0, Math.round(x));
+            const y1 = Math.max(0, Math.round(y));
+            const x2 = Math.min(width, Math.round(x + w));
+            const y2 = Math.min(integral.length / stride - 1, Math.round(y + h));
+            return integral[y2 * stride + x2] - integral[y1 * stride + x2] - integral[y2 * stride + x1] + integral[y1 * stride + x1];
+        }
+
+        function nonMaxSuppress(candidates, minDistance) {
+            const picked = [];
+            candidates
+                .sort((a, b) => b.score - a.score)
+                .forEach((candidate) => {
+                    const duplicate = picked.some((item) => Math.hypot(item.cx - candidate.cx, item.cy - candidate.cy) < minDistance);
+                    if (!duplicate) picked.push(candidate);
+                });
+            return picked;
+        }
+
+        function findDarkComponents(mask, width, height) {
+            const visited = new Uint8Array(mask.length);
+            const boxes = [];
+            const queue = [];
+            const step = Math.max(1, Math.round(Math.min(width, height) / 900));
+
+            for (let y = 0; y < height; y += step) {
+                for (let x = 0; x < width; x += step) {
+                    const start = y * width + x;
+                    if (!mask[start] || visited[start]) continue;
+                    let minX = x;
+                    let maxX = x;
+                    let minY = y;
+                    let maxY = y;
+                    let count = 0;
+                    queue.length = 0;
+                    queue.push(start);
+                    visited[start] = 1;
+
+                    while (queue.length) {
+                        const idx = queue.pop();
+                        const px = idx % width;
+                        const py = Math.floor(idx / width);
+                        count += 1;
+                        if (px < minX) minX = px;
+                        if (px > maxX) maxX = px;
+                        if (py < minY) minY = py;
+                        if (py > maxY) maxY = py;
+
+                        const neighbors = [idx - 1, idx + 1, idx - width, idx + width];
+                        for (const next of neighbors) {
+                            if (next < 0 || next >= mask.length || visited[next] || !mask[next]) continue;
+                            const nx = next % width;
+                            if (Math.abs(nx - px) > 1) continue;
+                            visited[next] = 1;
+                            queue.push(next);
+                        }
+                    }
+
+                    boxes.push({
+                        minX,
+                        maxX,
+                        minY,
+                        maxY,
+                        width: maxX - minX + 1,
+                        height: maxY - minY + 1,
+                        area: count,
+                        cx: (minX + maxX) / 2,
+                        cy: (minY + maxY) / 2
+                    });
+                }
+            }
+            return boxes;
+        }
+
+        function nearestStaff(x, y, staffGroups) {
+            if (!staffGroups.length) return null;
+            return staffGroups.reduce((best, staff) => {
+                const distance = Math.abs(staff.center - y);
+                return !best || distance < best.distance ? { ...staff, distance } : best;
+            }, null);
+        }
+
+        function isLikelyNote(box, staffGroups, width, height) {
+            if (!box.staff) return false;
+            const gap = box.staff.gap || Math.min(width, height) * 0.018;
+            const minSize = Math.max(5, gap * 0.35);
+            const maxW = gap * 3.8;
+            const maxH = gap * 3.8;
+            const ratio = box.width / Math.max(1, box.height);
+            const nearStaff = box.cy > box.staff.top - gap * 3.2 && box.cy < box.staff.bottom + gap * 3.0;
+            const notTooWide = box.width < maxW;
+            const notTooTall = box.height < maxH;
+            const enoughInk = box.area > minSize * minSize * 0.35;
+            const noteSized = box.width > minSize && box.height > minSize;
+            const compact = ratio > 0.35 && ratio < 2.9;
+            const notLeftLabel = box.cx > width * 0.08;
+            return nearStaff && notTooWide && notTooTall && enoughInk && noteSized && compact && notLeftLabel;
+        }
+
+        function dedupeNotes(notes, width, height) {
+            const picked = [];
+            const minDistance = Math.max(16, Math.min(width, height) * 0.022);
+            notes
+                .sort((a, b) => (b.score || b.area || 0) - (a.score || a.area || 0))
+                .forEach((note) => {
+                    const duplicate = picked.some((item) => Math.hypot(item.cx - note.cx, item.cy - note.cy) < minDistance);
+                    if (!duplicate) picked.push(note);
+                });
+            return picked.sort((a, b) => {
+                const staffDiff = (a.staff?.center || a.cy) - (b.staff?.center || b.cy);
+                if (Math.abs(staffDiff) > height * 0.04) return staffDiff;
+                return a.cx - b.cx;
+            });
+        }
+
+        function inferString(note) {
+            if (!note.staff) return "A";
+            const relative = (note.cy - note.staff.top) / Math.max(1, note.staff.bottom - note.staff.top);
+            if (relative < 0.18) return "E";
+            if (relative < 0.64) return "A";
+            return "D";
+        }
+
+        function inferFinger(index, level, stringName) {
+            const patterns = {
+                beginner: ["0", "1", "2", "3", "1", "2", "0", "1", "3", "4"],
+                middle: ["1", "2", "3", "1", "4", "2", "3", "1", "2", "4"],
+                advanced: ["2", "3", "4", "1", "3", "2", "4", "2", "1", "3"]
+            };
+            if (stringName === "E" && index % 5 === 0) return "4";
+            if (stringName === "D" && index % 6 === 0) return "0";
+            return patterns[level][index % patterns[level].length];
+        }
+
+        function buildFallbackMarks(level, staffGroups) {
+            const patterns = {
+                beginner: ["1", "2", "0", "1", "3", "2", "0", "1", "4", "2", "1", "0"],
+                middle: ["1", "2", "3", "1", "4", "2", "3", "1", "2", "4", "3", "2"],
+                advanced: ["2", "3", "4", "1", "3", "2", "4", "2", "1", "3", "4", "2"]
+            };
+            const strings = ["A", "A", "E", "A", "D", "A", "E", "E", "D", "A", "A", "E"];
+            const groups = staffGroups.length ? staffGroups.slice(0, 3) : [
+                { top: canvas.height * 0.28, gap: canvas.height * 0.02 },
+                { top: canvas.height * 0.46, gap: canvas.height * 0.02 },
+                { top: canvas.height * 0.64, gap: canvas.height * 0.02 }
+            ];
+            return patterns[level].map((finger, index) => {
+                const row = Math.floor(index / 4) % groups.length;
+                const col = index % 4;
+                const staff = groups[row];
+                return {
+                    id: makeId(),
+                    finger,
+                    string: strings[index % strings.length],
+                    x: canvas.width * (0.18 + col * 0.2) + row * 18,
+                    y: staff.top - staff.gap * 2.4
+                };
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!state.image) return;
+
+            ctx.drawImage(state.image, 0, 0, canvas.width, canvas.height);
+            state.marks.forEach((mark) => drawMark(mark));
+        }
+
+        function drawMark(mark) {
+            const size = Math.max(31, Math.min(canvas.width, canvas.height) * 0.045);
+            const color = stringColors[mark.string] || "#111827";
+            const tilt = ((mark.id.charCodeAt(0) % 7) - 3) * 0.025;
+            ctx.save();
+            ctx.translate(mark.x, mark.y);
+            ctx.rotate(tilt);
+            ctx.lineWidth = Math.max(2, size * 0.075);
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+            ctx.fillStyle = color;
+            ctx.font = `700 ${Math.round(size)}px Caveat, Noto Sans KR, cursive`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.strokeText(mark.finger, 0, 0);
+            ctx.fillText(mark.finger, 0, 0);
+
+            ctx.font = `700 ${Math.round(size * 0.42)}px Caveat, Noto Sans KR, cursive`;
+            ctx.fillText(mark.string || "", size * 0.42, size * 0.32);
+            ctx.restore();
+        }
+
+        function roundRect(x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + width, y, x + width, y + height, radius);
+            ctx.arcTo(x + width, y + height, x, y + height, radius);
+            ctx.arcTo(x, y + height, x, y, radius);
+            ctx.arcTo(x, y, x + width, y, radius);
+            ctx.closePath();
+        }
+
+        function getCanvasPoint(event) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (event.clientX - rect.left) * (canvas.width / rect.width),
+                y: (event.clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        function findMark(point) {
+            const radius = Math.max(28, Math.min(canvas.width, canvas.height) * 0.035);
+            return [...state.marks].reverse().find((mark) => {
+                const dx = mark.x - point.x;
+                const dy = mark.y - point.y;
+                return Math.hypot(dx, dy) <= radius;
+            });
+        }
+
+        function addMark(point) {
+            if (!state.image) {
+                showToast("먼저 악보 사진을 올려주세요");
+                return;
+            }
+            state.marks.push({
+                id: makeId(),
+                finger: state.selectedFinger,
+                string: state.selectedString,
+                x: point.x,
+                y: point.y
+            });
+            draw();
+            updateMarkList();
+        }
+
+        function updateMarkList() {
+            $("#markCount").textContent = `${state.marks.length}개`;
+            const list = $("#markList");
+            if (!state.marks.length) {
+                list.innerHTML = `<div class="mark-item"><span class="mark-badge" style="color:#111827">-</span><div><strong>표시된 번호 없음</strong><span>분석하거나 직접 추가하세요</span></div></div>`;
+                return;
+            }
+            list.innerHTML = state.marks.map((mark, index) => `
+                <div class="mark-item">
+                    <span class="mark-badge" style="color:${stringColors[mark.string] || "#111827"}">${mark.finger}</span>
+                    <div>
+                        <strong>${index + 1}번째 번호</strong>
+                        <span>x ${Math.round(mark.x)}, y ${Math.round(mark.y)}${mark.string ? `, ${mark.string}현` : ""}</span>
+                    </div>
+                    <button class="delete-mark" type="button" data-delete="${mark.id}" aria-label="번호 삭제">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+            `).join("");
+            lucide.createIcons();
+        }
+
+        function downloadEditedImage() {
+            if (!state.image) {
+                showToast("저장할 사진이 없습니다");
+                return;
+            }
+            draw();
+            const link = document.createElement("a");
+            const baseName = state.fileName.replace(/\.[^.]+$/, "") || "vion-score";
+            link.download = `${baseName}-fingering.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            showToast("편집된 사진을 저장했습니다");
+        }
+
+        $("#photoInput").addEventListener("change", (event) => handleFile(event.target.files[0]));
+        $("#sampleButton").addEventListener("click", drawSampleScore);
+        $("#analyzeButton").addEventListener("click", detectMarks);
+        $("#apiEndpoint").value = localStorage.getItem("vionApiEndpoint") || $("#apiEndpoint").value;
+        $("#apiEndpoint").addEventListener("change", () => {
+            localStorage.setItem("vionApiEndpoint", $("#apiEndpoint").value.trim());
+            showToast("YOLO/MSR API 주소를 저장했습니다");
+        });
+        $("#engineSelect").addEventListener("change", () => {
+            const yoloMode = $("#engineSelect").value === "yolo";
+            $("#apiField").style.display = yoloMode ? "" : "none";
+            $("#analyzeButton").innerHTML = yoloMode
+                ? `<i data-lucide="scan-search"></i> YOLO/MSR로 번호 입히기`
+                : `<i data-lucide="scan-search"></i> 브라우저 분석으로 번호 입히기`;
+            lucide.createIcons();
+        });
+        $("#downloadButton").addEventListener("click", downloadEditedImage);
+        $("#undoButton").addEventListener("click", () => {
+            state.marks.pop();
+            draw();
+            updateMarkList();
+        });
+        $("#clearButton").addEventListener("click", () => {
+            state.marks = [];
+            draw();
+            updateMarkList();
+            showToast("번호를 모두 지웠습니다");
+        });
+        $("#resetButton").addEventListener("click", () => {
+            state.image = null;
+            state.fileName = "";
+            state.marks = [];
+            canvas.width = 0;
+            canvas.height = 0;
+            $("#emptyState").classList.remove("hidden");
+            $("#fileLabel").textContent = "악보 사진 선택 또는 드롭";
+            setStatus("대기", "clock-3");
+            updateMarkList();
+        });
+
+        $("#fingerTools").addEventListener("click", (event) => {
+            const button = event.target.closest("[data-finger]");
+            if (!button) return;
+            state.selectedFinger = button.dataset.finger;
+            $$("#fingerTools .finger-tool").forEach((item) => item.classList.remove("active"));
+            button.classList.add("active");
+        });
+
+        $("#stringTools").addEventListener("click", (event) => {
+            const button = event.target.closest("[data-string]");
+            if (!button) return;
+            state.selectedString = button.dataset.string;
+            $$("#stringTools .string-tool").forEach((item) => item.classList.remove("active"));
+            button.classList.add("active");
+        });
+
+        $("#markList").addEventListener("click", (event) => {
+            const button = event.target.closest("[data-delete]");
+            if (!button) return;
+            state.marks = state.marks.filter((mark) => mark.id !== button.dataset.delete);
+            draw();
+            updateMarkList();
+        });
+
+        canvas.addEventListener("pointerdown", (event) => {
+            if (!state.image) return;
+            canvas.setPointerCapture(event.pointerId);
+            const point = getCanvasPoint(event);
+            const mark = findMark(point);
+            if (mark) {
+                state.draggingId = mark.id;
+                state.dragOffset.x = mark.x - point.x;
+                state.dragOffset.y = mark.y - point.y;
+            } else {
+                addMark(point);
+            }
+        });
+
+        canvas.addEventListener("pointermove", (event) => {
+            if (!state.draggingId) return;
+            const mark = state.marks.find((item) => item.id === state.draggingId);
+            if (!mark) return;
+            const point = getCanvasPoint(event);
+            mark.x = Math.max(0, Math.min(canvas.width, point.x + state.dragOffset.x));
+            mark.y = Math.max(0, Math.min(canvas.height, point.y + state.dragOffset.y));
+            draw();
+        });
+
+        canvas.addEventListener("pointerup", () => {
+            if (state.draggingId) updateMarkList();
+            state.draggingId = null;
+        });
+
+        const dropZone = $("#dropZone");
+        ["dragenter", "dragover"].forEach((type) => {
+            dropZone.addEventListener(type, (event) => {
+                event.preventDefault();
+                dropZone.style.borderColor = "var(--brand)";
+            });
+        });
+        ["dragleave", "drop"].forEach((type) => {
+            dropZone.addEventListener(type, (event) => {
+                event.preventDefault();
+                dropZone.style.borderColor = "";
+            });
+        });
+        dropZone.addEventListener("drop", (event) => handleFile(event.dataTransfer.files[0]));
+
+        $$(".bottom-nav button").forEach((button) => {
+            button.addEventListener("click", () => {
+                $$(".bottom-nav button").forEach((item) => item.classList.remove("active"));
+                button.classList.add("active");
+                document.getElementById(button.dataset.target).scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+        });
+
+        updateMarkList();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
