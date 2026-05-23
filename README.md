@@ -55,10 +55,24 @@ runtime.txt             Python runtime hint
 
 1. Push this repository to GitHub.
 2. Open repository Settings > Pages.
-3. Select the `main` branch and root folder.
-4. Open the Pages URL.
+3. Set Source to `GitHub Actions`.
+4. Push to `main` or run the `Deploy Vion Frontend` workflow.
+5. Open the Pages URL.
 
 GitHub Pages only hosts the frontend. It cannot run the Python model server.
+
+## 24/7 Hosting
+
+Use two hosts:
+
+```text
+Frontend: GitHub Pages
+Backend: Render, Railway, Fly.io, VPS, or another Python/Docker host
+```
+
+GitHub Pages cannot run `yolo_msr_server.py`, FastAPI, Python, OpenCV, or YOLO. The YOLO/MSR API must be deployed separately and exposed as an HTTPS URL.
+
+For production, put the backend HTTPS URL into the app's `YOLO/MSR API address` input. The app saves the URL in the browser.
 
 ## Local API
 
@@ -101,6 +115,23 @@ If `VION_YOLO_WEIGHTS` is not set or the model fails to load, the server falls b
 4. Put the deployed HTTPS API URL into the app's YOLO/MSR API input.
 
 Important: GitHub Pages is HTTPS, so the API must also be HTTPS in production.
+
+## Deploy API With Docker
+
+The repository includes a `Dockerfile`.
+
+Example:
+
+```bash
+docker build -t vion-yolo-msr .
+docker run -p 8000:8000 vion-yolo-msr
+```
+
+Then use:
+
+```text
+http://localhost:8000/analyze-score
+```
 
 ## API Response
 

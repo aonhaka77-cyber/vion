@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+akdhs
+asdf.html
+test.html
+uploads
+*.pt
+*.onnx
+*.engine
