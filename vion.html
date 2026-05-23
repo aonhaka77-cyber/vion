@@ -1420,6 +1420,11 @@
         $("#sampleButton").addEventListener("click", drawSampleScore);
         $("#analyzeButton").addEventListener("click", detectMarks);
         $("#apiEndpoint").value = localStorage.getItem("vionApiEndpoint") || $("#apiEndpoint").value;
+        if (location.protocol === "https:" && $("#apiEndpoint").value.includes("localhost")) {
+            $("#engineSelect").value = "local";
+            $("#apiField").style.display = "none";
+            $("#analyzeButton").innerHTML = `<i data-lucide="scan-search"></i> 브라우저 분석으로 번호 입히기`;
+        }
         $("#apiEndpoint").addEventListener("change", () => {
             localStorage.setItem("vionApiEndpoint", $("#apiEndpoint").value.trim());
             showToast("YOLO/MSR API 주소를 저장했습니다");
