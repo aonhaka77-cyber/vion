@@ -398,6 +398,11 @@
             gap: 9px;
         }
 
+        .mark-item.selected {
+            outline: 2px solid var(--brand);
+            background: #edf7f3;
+        }
+
         .mark-badge {
             width: 30px;
             height: 30px;
@@ -646,6 +651,10 @@
                             <button class="string-tool" type="button" data-string="E" style="color:#111827"><strong>E</strong><span>검정</span></button>
                         </div>
                         <div class="actions two" style="margin-top: 10px;">
+                            <button class="button primary" id="applyEditButton" type="button">
+                                <i data-lucide="check"></i>
+                                선택 번호 수정
+                            </button>
                             <button class="button soft" id="undoButton" type="button">
                                 <i data-lucide="undo-2"></i>
                                 하나 삭제
@@ -665,6 +674,10 @@
                             <button class="button dark" id="downloadButton" type="button">
                                 <i data-lucide="download"></i>
                                 편집된 사진 저장
+                            </button>
+                            <button class="button soft" id="exportDataButton" type="button">
+                                <i data-lucide="database"></i>
+                                보정 데이터 저장
                             </button>
                         </div>
                     </section>
@@ -708,8 +721,10 @@
             marks: [],
             selectedFinger: "1",
             selectedString: "A",
+            selectedMarkId: "",
             draggingId: null,
             dragOffset: { x: 0, y: 0 },
+            pointerMoved: false,
         };
 
         const stringColors = {
@@ -1334,6 +1349,14 @@
 
             ctx.font = `700 ${Math.round(size * 0.34)}px Caveat, Noto Sans KR, cursive`;
             ctx.fillText(mark.string || "", size * 0.38, size * 0.28);
+            if (mark.id === state.selectedMarkId) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = Math.max(1, size * 0.05);
+                ctx.beginPath();
+                ctx.moveTo(-size * 0.45, size * 0.58);
+                ctx.lineTo(size * 0.45, size * 0.58);
+                ctx.stroke();
+            }
             ctx.restore();
         }
 
@@ -1369,15 +1392,46 @@
                 showToast("먼저 악보 사진을 올려주세요");
                 return;
             }
-            state.marks.push({
+            const mark = {
                 id: makeId(),
                 finger: state.selectedFinger,
                 string: state.selectedString,
                 x: point.x,
                 y: point.y
-            });
+            };
+            state.marks.push(mark);
+            state.selectedMarkId = mark.id;
             draw();
             updateMarkList();
+        }
+
+        function selectMark(mark) {
+            state.selectedMarkId = mark ? mark.id : "";
+            if (mark) {
+                state.selectedFinger = mark.finger;
+                state.selectedString = mark.string;
+                syncToolSelection();
+            }
+            draw();
+            updateMarkList();
+        }
+
+        function applySelectedEdit() {
+            const mark = state.marks.find((item) => item.id === state.selectedMarkId);
+            if (!mark) {
+                showToast("수정할 번호를 먼저 선택하세요");
+                return;
+            }
+            mark.finger = state.selectedFinger;
+            mark.string = state.selectedString;
+            draw();
+            updateMarkList();
+            showToast("선택한 운지를 수정했습니다");
+        }
+
+        function syncToolSelection() {
+            $$("#fingerTools .finger-tool").forEach((item) => item.classList.toggle("active", item.dataset.finger === state.selectedFinger));
+            $$("#stringTools .string-tool").forEach((item) => item.classList.toggle("active", item.dataset.string === state.selectedString));
         }
 
         function updateMarkList() {
@@ -1388,7 +1442,7 @@
                 return;
             }
             list.innerHTML = state.marks.map((mark, index) => `
-                <div class="mark-item">
+                <div class="mark-item ${mark.id === state.selectedMarkId ? "selected" : ""}" data-select="${mark.id}">
                     <span class="mark-badge" style="color:${stringColors[mark.string] || "#111827"}">${mark.finger}</span>
                     <div>
                         <strong>${index + 1}번째 번호</strong>
@@ -1416,6 +1470,35 @@
             showToast("편집된 사진을 저장했습니다");
         }
 
+        function exportCorrectionData() {
+            if (!state.image || !state.marks.length) {
+                showToast("저장할 보정 데이터가 없습니다");
+                return;
+            }
+            const payload = {
+                app: "Vion",
+                type: "violin-fingering-corrections",
+                fileName: state.fileName,
+                imageWidth: canvas.width,
+                imageHeight: canvas.height,
+                strings: { A: "red", D: "blue", E: "black" },
+                marks: state.marks.map((mark) => ({
+                    finger: mark.finger,
+                    string: mark.string,
+                    x: Math.round(mark.x),
+                    y: Math.round(mark.y)
+                }))
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+            const link = document.createElement("a");
+            const baseName = state.fileName.replace(/\.[^.]+$/, "") || "vion-score";
+            link.download = `${baseName}-fingering-data.json`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+            showToast("학습용 보정 데이터를 저장했습니다");
+        }
+
         $("#photoInput").addEventListener("change", (event) => handleFile(event.target.files[0]));
         $("#sampleButton").addEventListener("click", drawSampleScore);
         $("#analyzeButton").addEventListener("click", detectMarks);
@@ -1438,13 +1521,17 @@
             lucide.createIcons();
         });
         $("#downloadButton").addEventListener("click", downloadEditedImage);
+        $("#exportDataButton").addEventListener("click", exportCorrectionData);
+        $("#applyEditButton").addEventListener("click", applySelectedEdit);
         $("#undoButton").addEventListener("click", () => {
             state.marks.pop();
+            if (!state.marks.some((mark) => mark.id === state.selectedMarkId)) state.selectedMarkId = "";
             draw();
             updateMarkList();
         });
         $("#clearButton").addEventListener("click", () => {
             state.marks = [];
+            state.selectedMarkId = "";
             draw();
             updateMarkList();
             showToast("번호를 모두 지웠습니다");
@@ -1453,6 +1540,7 @@
             state.image = null;
             state.fileName = "";
             state.marks = [];
+            state.selectedMarkId = "";
             canvas.width = 0;
             canvas.height = 0;
             $("#emptyState").classList.remove("hidden");
@@ -1465,24 +1553,32 @@
             const button = event.target.closest("[data-finger]");
             if (!button) return;
             state.selectedFinger = button.dataset.finger;
-            $$("#fingerTools .finger-tool").forEach((item) => item.classList.remove("active"));
-            button.classList.add("active");
+            syncToolSelection();
+            const mark = state.marks.find((item) => item.id === state.selectedMarkId);
+            if (mark) applySelectedEdit();
         });
 
         $("#stringTools").addEventListener("click", (event) => {
             const button = event.target.closest("[data-string]");
             if (!button) return;
             state.selectedString = button.dataset.string;
-            $$("#stringTools .string-tool").forEach((item) => item.classList.remove("active"));
-            button.classList.add("active");
+            syncToolSelection();
+            const mark = state.marks.find((item) => item.id === state.selectedMarkId);
+            if (mark) applySelectedEdit();
         });
 
         $("#markList").addEventListener("click", (event) => {
             const button = event.target.closest("[data-delete]");
-            if (!button) return;
-            state.marks = state.marks.filter((mark) => mark.id !== button.dataset.delete);
-            draw();
-            updateMarkList();
+            if (button) {
+                state.marks = state.marks.filter((mark) => mark.id !== button.dataset.delete);
+                if (state.selectedMarkId === button.dataset.delete) state.selectedMarkId = "";
+                draw();
+                updateMarkList();
+                return;
+            }
+            const row = event.target.closest("[data-select]");
+            if (!row) return;
+            selectMark(state.marks.find((mark) => mark.id === row.dataset.select));
         });
 
         canvas.addEventListener("pointerdown", (event) => {
@@ -1491,7 +1587,9 @@
             const point = getCanvasPoint(event);
             const mark = findMark(point);
             if (mark) {
+                selectMark(mark);
                 state.draggingId = mark.id;
+                state.pointerMoved = false;
                 state.dragOffset.x = mark.x - point.x;
                 state.dragOffset.y = mark.y - point.y;
             } else {
@@ -1504,6 +1602,7 @@
             const mark = state.marks.find((item) => item.id === state.draggingId);
             if (!mark) return;
             const point = getCanvasPoint(event);
+            state.pointerMoved = true;
             mark.x = Math.max(0, Math.min(canvas.width, point.x + state.dragOffset.x));
             mark.y = Math.max(0, Math.min(canvas.height, point.y + state.dragOffset.y));
             draw();
